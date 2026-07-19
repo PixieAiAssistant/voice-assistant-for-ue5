@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixie — AI Assistant for Game Developers & Power Users</title>
+<meta name="description" content="Pixie is a voice-controlled AI assistant for Windows and Unreal Engine 5. Control your PC and UE5 projects hands-free.">
+<link rel="icon" href="favicon.ico">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg-alt: #14171f;
+    --card: #1b1f2a;
+    --accent: #8b5cf6;
+    --accent-2: #22d3ee;
+    --text: #e5e7eb;
+    --text-dim: #9ca3af;
+    --border: #2a2f3d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  header.hero {
+    background: radial-gradient(ellipse at top, rgba(139,92,246,0.25), transparent 60%), var(--bg);
+    padding: 100px 0 80px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  header.hero h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  header.hero p.subtitle {
+    font-size: 1.25rem;
+    color: var(--text-dim);
+    margin-top: 16px;
+    max-width: 640px;
+    margin-inline: auto;
+  }
+  .cta-row { margin-top: 36px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); text-decoration: none; }
+  .btn-primary {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: #0d0f14;
+    box-shadow: 0 8px 24px rgba(139,92,246,0.35);
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  section { padding: 80px 0; }
+  section.alt { background: var(--bg-alt); }
+  h2 { font-size: 2rem; text-align: center; margin-bottom: 12px; }
+  p.section-lead { text-align: center; color: var(--text-dim); max-width: 640px; margin: 0 auto 48px; }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+  }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+  }
+  .feature-card .icon { font-size: 2rem; margin-bottom: 12px; }
+  .feature-card h3 { font-size: 1.15rem; margin-bottom: 8px; }
+  .feature-card p { color: var(--text-dim); font-size: 0.95rem; }
+  .badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .badge-free { background: #10b98122; color: #34d399; }
+  .badge-pro { background: #8b5cf622; color: #a78bfa; }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .price-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 28px;
+    text-align: center;
+    position: relative;
+  }
+  .price-card.featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 20px 40px rgba(139,92,246,0.15); }
+  .price-card .plan-name { font-size: 1.1rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .price-card .price { font-size: 2.75rem; font-weight: 800; margin: 12px 0; }
+  .price-card .price span { font-size: 1rem; color: var(--text-dim); font-weight: 400; }
+  .price-card ul { list-style: none; margin: 24px 0; text-align: left; color: var(--text-dim); font-size: 0.95rem; }
+  .price-card ul li { padding: 6px 0; }
+  .price-card ul li::before { content: "✓ "; color: #34d399; font-weight: 700; }
+  .save-tag { position: absolute; top: -12px; right: 20px; background: var(--accent); color: #0d0f14; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 8px; }
+
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+  }
+  .faq-item h3 { font-size: 1.05rem; margin-bottom: 8px; }
+  .faq-item p { color: var(--text-dim); font-size: 0.95rem; }
+
+  .lost-key-box {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px;
+    text-align: center;
+  }
+  .lost-key-box input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    margin: 16px 0;
+    font-size: 1rem;
+  }
+  .lost-key-box #lostKeyStatus { font-size: 0.9rem; margin-top: 12px; min-height: 1.2em; }
+
+  .download-box {
+    text-align: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 48px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  footer {
+    padding: 40px 0;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--border);
+  }
+  footer a { margin: 0 10px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <h1>Pixie</h1>
+    <p class="subtitle">A voice-controlled AI assistant for Windows &amp; Unreal Engine 5 developers.
+    Talk to your PC. Talk to your engine.</p>
+    <div class="cta-row">
+      <a href="#pricing" class="btn btn-primary">Get Pixie Pro</a>
+      <a href="#download" class="btn btn-secondary">Download Free</a>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="container">
+    <h2>What Pixie can do</h2>
+    <p class="section-lead">One voice assistant, two tiers. Free covers full Windows control.
+    Pro unlocks deep Unreal Engine 5 integration.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="icon">🖥️</div>
+        <h3>Full Windows control <span class="badge badge-free">Free</span></h3>
+        <p>Open apps, type text, press hotkeys, manage files, run terminal commands — all hands-free, by voice.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🗣️</div>
+        <h3>Natural voice interaction <span class="badge badge-free">Free</span></h3>
+        <p>Powered by Gemini Live API — low-latency, casual, gamer-friendly conversation, not robotic commands.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎨</div>
+        <h3>Customizable assistant <span class="badge badge-free">Free</span></h3>
+        <p>Rename your assistant, pick a voice, switch language — all via a simple config.json.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎬</div>
+        <h3>Unreal Engine actor &amp; scene control <span class="badge badge-pro">Pro</span></h3>
+        <p>Find, spawn, move, delete and inspect actors on the level by voice. No manual clicking through Outliner.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🧩</div>
+        <h3>Blueprint editing <span class="badge badge-pro">Pro</span></h3>
+        <p>Read and modify Blueprint components and Class Defaults, compile and save — straight from voice commands.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎥</div>
+        <h3>Camera &amp; recipe library <span class="badge badge-pro">Pro</span></h3>
+        <p>One-shot camera mode switching (first/third person, horizon fix) plus a curated Python recipe library for UE 5.8.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" class="alt">
+  <div class="container">
+    <h2>Pricing</h2>
+    <p class="section-lead">No trial, no subscription tricks. Your key is shown right on this site immediately
+    after payment — and also sent to your email as a backup.</p>
+
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="plan-name">Monthly</div>
+        <div class="price">$15<span>/mo</span></div>
+        <ul>
+          <li>Everything in Free</li>
+          <li>Full UE5 Pro toolset</li>
+          <li>Priority email support</li>
+        </ul>
+        <a class="btn btn-primary" href="https://app.lava.top/YOUR_PRODUCT_MONTHLY" target="_blank" rel="noopener">Buy Monthly</a>
+      </div>
+      <div class="price-card featured">
+        <span class="save-tag">Save ~17%</span>
+        <div class="plan-name">Yearly</div>
+        <div class="price">$149<span>/yr</span></div>
+        <ul>
+          <li>Everything in Free</li>
+          <li>Full UE5 Pro toolset</li>
+          <li>Priority email support</li>
+          <li>Best value for full-time devs</li>
+        </ul>
+        <a class="btn btn-primary" href="https://app.lava.top/YOUR_PRODUCT_YEARLY" target="_blank" rel="noopener">Buy Yearly</a>
+      </div>
+    </div>
+    <p style="text-align:center; margin-top:32px; color:var(--text-dim); font-size:0.9rem;">
+      Prefer crypto? Pay with USDT via
+      <a href="https://nowpayments.io/payment/?YOUR_NOWPAYMENTS_LINK" target="_blank" rel="noopener">NowPayments</a>.
+    </p>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="container">
+    <h2>FAQ</h2>
+    <div class="faq-item">
+      <h3>Does Pixie work without Unreal Engine?</h3>
+      <p>Yes. The Free version works as a full Windows voice assistant on its own — no UE5 project required.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Do I need to create an account?</h3>
+      <p>No registration required. After payment, your license key is emailed to you automatically.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Is there a free trial for Pro?</h3>
+      <p>There is no trial period. The Free tier itself is fully functional for Windows control — Pro is a paid upgrade for UE5 features.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Can I use my license on multiple machines?</h3>
+      <p>Each license is bound to one machine (via a hardware ID). If you switch PCs, contact support via email to reset your device.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Which Unreal Engine version is supported?</h3>
+      <p>Pixie Pro is built and tested for UE 5.8. Other 5.x versions may partially work, but are not officially supported.</p>
+    </div>
+    <div class="faq-item">
+      <h3>I paid but didn't receive my key — what do I do?</h3>
+      <p>Use the "Lost your key?" box below — enter the email you paid with and we'll resend it instantly.</p>
+    </div>
+  </div>
+</section>
+
+<section id="lost-key" class="alt">
+  <div class="container">
+    <h2>Lost your key?</h2>
+    <p class="section-lead">Enter the email you used at checkout — we'll resend your license key right away.</p>
+    <div class="lost-key-box">
+      <input type="email" id="lostKeyEmail" placeholder="you@example.com" required>
+      <button class="btn btn-primary" id="lostKeyBtn" style="width:100%;">Resend my key</button>
+      <div id="lostKeyStatus"></div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="container">
+    <div class="download-box">
+      <h2 style="margin-bottom:8px;">Download Pixie</h2>
+      <p style="color:var(--text-dim); margin-bottom:24px;">Free tier included. Activate Pro anytime with your license key.</p>
+      <a class="btn btn-primary" href="https://github.com/dmanucharyan-del/pixie-ai/releases/latest" target="_blank" rel="noopener">
+        ⬇ Download for Windows
+      </a>
+      <p style="margin-top:16px; font-size:0.85rem; color:var(--text-dim);">Windows 10/11 · ~60 MB installer</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>© 2026 Pixie Assistant. All rights reserved.</p>
+    <p style="margin-top:8px;">
+      <a href="mailto:support@example.com">Contact</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+    </p>
+  </div>
+</footer>
+
+<script>
+  const LICENSE_API_BASE = "https://api.pixie-ai.pro"; // license_server.py endpoint
+
+
+  document.getElementById("lostKeyBtn").addEventListener("click", async () => {
+    const email = document.getElementById("lostKeyEmail").value.trim();
+    const status = document.getElementById("lostKeyStatus");
+    if (!email) {
+      status.textContent = "Please enter your email.";
+      status.style.color = "#f87171";
+      return;
+    }
+    status.textContent = "Sending...";
+    status.style.color = "var(--text-dim)";
+    try {
+      const resp = await fetch(`${LICENSE_API_BASE}/license/lost?email=${encodeURIComponent(email)}`, {
+        method: "POST",
+      });
+      const data = await resp.json();
+      if (resp.ok && data.sent) {
+        status.textContent = "✅ Key resent! Check your inbox (and spam folder).";
+        status.style.color = "#34d399";
+      } else if (resp.ok && data.email) {
+        status.textContent = "Found your license, but email delivery is not configured on this server yet. Contact support.";
+        status.style.color = "#fbbf24";
+      } else {
+        status.textContent = "No license found for this email. Contact support if you believe this is an error.";
+        status.style.color = "#f87171";
+      }
+    } catch (e) {
+      status.textContent = "Network error — please try again later or contact support.";
+      status.style.color = "#f87171";
+    }
+  });
+</script>
+
+</body>
+</html>

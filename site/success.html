@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Pixie Pro key — Payment successful</title>
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --card: #1b1f2a;
+    --accent: #8b5cf6;
+    --accent-2: #22d3ee;
+    --text: #e5e7eb;
+    --text-dim: #9ca3af;
+    --border: #2a2f3d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  a { color: var(--accent-2); }
+  .box {
+    max-width: 560px;
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 8px; }
+  p.lead { color: var(--text-dim); margin-bottom: 28px; }
+  .key-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    font-family: "Consolas", monospace;
+    font-size: 0.85rem;
+    word-break: break-all;
+    color: var(--accent-2);
+    margin-bottom: 16px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn {
+    display: inline-block;
+    padding: 12px 22px;
+    border-radius: 8px;
+    font-weight: 600;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: #0d0f14;
+    text-decoration: none;
+    margin: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  #status { color: var(--text-dim); font-size: 0.9rem; margin-top: 8px; min-height: 1.2em; }
+  .spinner {
+    width: 22px; height: 22px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent-2);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hint { font-size: 0.85rem; color: var(--text-dim); margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h1>🎉 Thank you for your purchase!</h1>
+  <p class="lead" id="leadText">Preparing your Pixie Pro license key...</p>
+
+  <div class="key-box" id="keyBox"><div class="spinner"></div></div>
+
+  <div id="actions" style="display:none;">
+    <button class="btn" id="copyBtn">📋 Copy key</button>
+    <a class="btn btn-secondary" id="pixieLink" href="#">Open in Pixie</a>
+  </div>
+
+  <div id="status"></div>
+
+  <p class="hint">
+    A copy of this key has also been sent to your email as a backup.<br>
+    Lost it later? Use the <a href="index.html#lost-key">"Lost your key?"</a> page.
+  </p>
+</div>
+
+<script>
+  const LICENSE_API_BASE = "https://api.pixie-ai.pro";
+  const POLL_INTERVAL_MS = 3000;
+  const MAX_ATTEMPTS = 20; // ~1 минута ожидания вебхука от платёжного провайдера
+
+  function getOrderId() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("order_id") || params.get("orderId") || "";
+  }
+
+  async function pollForKey() {
+    const orderId = getOrderId();
+    const leadText = document.getElementById("leadText");
+    const keyBox = document.getElementById("keyBox");
+    const status = document.getElementById("status");
+    const actions = document.getElementById("actions");
+
+    if (!orderId) {
+      leadText.textContent = "We couldn't find your order.";
+      keyBox.innerHTML = "No order_id in the URL.";
+      status.textContent = "If you just paid, check the confirmation email or contact support.";
+      status.style.color = "#f87171";
+      return;
+    }
+
+    let attempts = 0;
+    const tryFetch = async () => {
+      attempts++;
+      try {
+        const resp = await fetch(`${LICENSE_API_BASE}/license/by-order?order_id=${encodeURIComponent(orderId)}`);
+        const data = await resp.json();
+
+        if (resp.ok && data.ready) {
+          leadText.textContent = "Your Pixie Pro license key:";
+          keyBox.textContent = data.license_key;
+          document.getElementById("pixieLink").href = data.pixie_uri;
+          actions.style.display = "block";
+          status.textContent = `Plan: ${data.plan} · Valid until: ${data.expiry}`;
+          status.style.color = "#34d399";
+          return true;
+        }
+        return false;
+      } catch (e) {
+        return false;
+      }
+    };
+
+    const found = await tryFetch();
+    if (found) return;
+
+    status.textContent = "Waiting for payment confirmation...";
+    const interval = setInterval(async () => {
+      if (attempts >= MAX_ATTEMPTS) {
+        clearInterval(interval);
+        keyBox.innerHTML = "⏳ Taking longer than usual";
+        status.textContent = "Your payment may still be processing. Try refreshing this page in a minute, " +
+          "or use the 'Lost your key?' form on the homepage with your email — we'll resend it.";
+        status.style.color = "#fbbf24";
+        return;
+      }
+      const ok = await tryFetch();
+      if (ok) clearInterval(interval);
+    }, POLL_INTERVAL_MS);
+  }
+
+  document.getElementById("copyBtn").addEventListener("click", () => {
+    const key = document.getElementById("keyBox").textContent;
+    navigator.clipboard.writeText(key).then(() => {
+      const status = document.getElementById("status");
+      status.textContent = "✅ Copied to clipboard!";
+      status.style.color = "#34d399";
+    });
+  });
+
+  pollForKey();
+</script>
+
+</body>
+</html>

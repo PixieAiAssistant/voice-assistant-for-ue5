@@ -1,0 +1,54 @@
+Pixie Source-Available Proprietary License
+Copyright (c) 2026 Pixie Assistant. All rights reserved.
+
+This repository contains the source code of Pixie, a commercial software
+product. The source code is made publicly viewable for transparency and
+portfolio purposes, but it is NOT open-source software. By accessing,
+downloading, or using any part of this repository, you agree to the
+following terms:
+
+1. VIEWING & LEARNING
+   You may view, read, and study the source code for personal, educational,
+   and evaluation purposes.
+
+2. LOCAL USE FOR DEVELOPMENT / TESTING
+   You may clone this repository and run it locally for the purpose of
+   testing, evaluation, or contributing back to the project via pull
+   requests, provided you comply with the license terms of Pixie Pro
+   features described below.
+
+3. NO REDISTRIBUTION OR RESALE
+   You may NOT redistribute, sublicense, sell, rent, lease, or otherwise
+   make available copies of this software (source or compiled binary),
+   whether modified or unmodified, to any third party, without prior
+   written permission from the copyright holder.
+
+4. NO REMOVAL OR CIRCUMVENTION OF LICENSING
+   The "Pro" tier of Pixie (Unreal Engine integration features) is gated
+   behind a paid license key verified via RSA signature and a
+   machine-bound identifier (see `licensing.py`). You may NOT modify,
+   patch, reverse-engineer, or otherwise circumvent this licensing
+   mechanism to unlock Pro features without a valid, legitimately
+   purchased license key.
+
+5. TRADEMARKS
+   The name "Pixie" and associated logos/branding are not covered by this
+   license and may not be used to endorse or promote derived products
+   without explicit permission.
+
+6. CONTRIBUTIONS
+   Any contribution submitted to this repository (e.g., via pull request)
+   is assumed to be licensed to the copyright holder under the same terms
+   as this license, unless otherwise agreed in writing.
+
+7. NO WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+8. COMMERCIAL LICENSING / QUESTIONS
+   For commercial licensing inquiries, redistribution permissions, or
+   questions about this license, please contact the copyright holder via
+   the contact information listed in the project README.

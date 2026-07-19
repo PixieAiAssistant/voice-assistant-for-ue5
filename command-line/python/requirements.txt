@@ -1,0 +1,10 @@
+google-genai
+pyaudio
+mss
+Pillow
+pypdf
+pyperclip
+pyautogui
+cryptography
+
+

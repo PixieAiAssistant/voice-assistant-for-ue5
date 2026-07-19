@@ -1,0 +1,16 @@
+{
+  "engine_version": "5.8",
+  "script_library_paths": [
+    "E:\\UE_5.8\\Engine\\Plugins",
+    "E:\\MyProject",
+    "."
+  ],
+  "script_scan_globs": [
+    "**/Content/Python/**/*.py",
+    "**/Content/Python/**/examples/**/*.py",
+    "ue58_recipes/*.md"
+  ],
+  "max_index_entries": 180,
+  "max_snippet_chars": 3500,
+  "local_recipes_dir": "ue58_recipes"
+}
