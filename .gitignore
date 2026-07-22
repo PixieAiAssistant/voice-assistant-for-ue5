@@ -12,33 +12,31 @@ config.json
 
 # Персональный конфиг путей движка/проекта (у каждого разработчика свой) —
 # не коммитим, чтобы не тащить в репозиторий чужие локальные пути к дискам.
-command-line/python/pixie_config.json
+agent/pixie_config.json
 
 # Pixie license server (VPS): БД лицензий и ключи — не коммитить.
-command-line/python/server/*.pem
-command-line/python/server/*.db
-command-line/python/server/.env
+agent/server/*.pem
+agent/server/*.db
+agent/server/.env
 
 # ВНИМАНИЕ: эти скрипты содержат реальный root-пароль VPS в открытом виде —
 # НИКОГДА не коммитить. Если нужно поделиться логикой деплоя — используйте
 # только *.example версии без секретов.
-server/deploy/deploy.py
-server/deploy/deploy_site.py
+deploy/deploy.py
+deploy/deploy_site.py
 
 
 # Артефакты сборки Nuitka / Inno Setup — генерируются CI или локально,
 # в репозиторий не кладём (большие бинарники, легко пересобрать).
-command-line/python/dist/
-command-line/python/build/
-command-line/python/*.build/
-command-line/python/*.dist/
-command-line/python/*.onefile-build/
+agent/dist/
+agent/build/
+agent/*.build/
+agent/*.dist/
+agent/*.onefile-build/
 installer/output/
 
 # Runtime-артефакты приложения (создаются при запуске, не нужны в git).
-command-line/python/pixie_agent.log
-command-line/python/script_library_index.json
-command-line/python/ue_temp_scripts/
+agent/pixie_agent.log
+agent/script_library_index.json
+agent/ue_temp_scripts/
 *.log
-
-

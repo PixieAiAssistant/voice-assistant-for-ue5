@@ -27,8 +27,8 @@
 
 ; Пути относительно этого .iss файла — подправьте под свою структуру,
 ; если main.py собран в другую директорию.
-#define SourceDist "..\command-line\python\dist"
-#define SourcePython "..\command-line\python"
+#define SourceDist "..\agent\dist"
+#define SourcePython "..\agent"
 
 [Setup]
 AppId={{B3B9F0B0-6E6B-4C60-9C0E-PIXIE00000001}

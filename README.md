@@ -85,7 +85,7 @@ It understands natural language, speaks back, and can **control Unreal Engine**,
 | `config_loader.py` | Loads `config.json`, Nuitka‑compatible |
 | `gen_keys.py` | Generates RSA keys for signing licenses |
 | `issue_license.py` | Issues license keys |
-| `command-line/python/server/license_server.py` | VPS server for online license verification |
+| `agent/server/license_server.py` | VPS server for online license verification |
 
 ---
 
@@ -103,13 +103,14 @@ It understands natural language, speaks back, and can **control Unreal Engine**,
 ```bash
 git clone https://github.com/dmanucharyan-del/pixie-ai.git
 cd pixie-ai
-pip install -r command-line/python/requirements.txt
+pip install -r agent/requirements.txt
 ```
 
 ### Configuration
 
 1. **Get Gemini API key**: [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. **Edit `command-line/python/config.json`**:
+2. **Edit `agent/config.json`**:
+
    ```json
    {
      "gemini_api_key": "YOUR_API_KEY",
@@ -124,7 +125,7 @@ pip install -r command-line/python/requirements.txt
    `Edit` → `Project Settings` → `Plugins` → `Python` → check `Enable Remote Execution`
 4. **Run**:
    ```bash
-   cd command-line/python
+   cd agent
    python main.py
    ```
 

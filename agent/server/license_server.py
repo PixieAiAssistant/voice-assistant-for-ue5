@@ -24,7 +24,7 @@ webhook-события от платёжных провайдеров и email/p
 Запуск (разработка):
     uvicorn license_server:app --reload --port 8000
 
-Продакшен (за nginx/systemd, см. server/deploy/):
+Продакшен (за nginx/systemd, см. deploy/):
     uvicorn license_server:app --host 127.0.0.1 --port 8000 --workers 2
 
 ВАЖНО: этот файл НЕ импортирует основной licensing.py (тот живёт в .exe
