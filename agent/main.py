@@ -1,22 +1,56 @@
-import asyncio
-import logging
-from logging.handlers import RotatingFileHandler
 import os
 import sys
-import pyaudio
-import subprocess
-import io
-import mss
-import time
 import ctypes
-import pyperclip  
 import traceback
-from PIL import Image
-from pypdf import PdfReader
-from google import genai
-from google.genai import types
+
+
+def _fatal_startup_error(exc: BaseException) -> None:
+    """Показывает ошибку запуска пользователю и пишет её в лог-файл рядом с .exe.
+
+    Критично для собранного .exe: там используется --windows-console-mode=disable,
+    поэтому без этой обёртки любой сбой при старте (например, из-за отсутствующей
+    DLL, битого модуля после Nuitka-компиляции и т.п.) был бы абсолютно молчаливым —
+    окно просто не появляется, и пользователь не понимает, что случилось.
+    """
+    try:
+        base = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
+        log_path = os.path.join(base, "pixie_startup_error.log")
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write("".join(traceback.format_exception(type(exc), exc, exc.__traceback__)))
+    except Exception:
+        log_path = "(не удалось записать лог)"
+    try:
+        ctypes.windll.user32.MessageBoxW(
+            0,
+            f"Pixie не смогла запуститься:\n\n{type(exc).__name__}: {exc}\n\n"
+            f"Подробности записаны в файл:\n{log_path}",
+            "Pixie — ошибка запуска",
+            0x10,  # MB_ICONERROR
+        )
+    except Exception:
+        pass
+    sys.exit(1)
+
+
+try:
+    import asyncio
+    import logging
+    from logging.handlers import RotatingFileHandler
+    import pyaudio
+    import subprocess
+    import io
+    import mss
+    import time
+    import pyperclip
+    from PIL import Image
+    from pypdf import PdfReader
+    from google import genai
+    from google.genai import types
+except BaseException as _startup_import_exc:
+    _fatal_startup_error(_startup_import_exc)
 
 # ---------- Nuitka/Windows совместимость ----------
+
 # WindowsSelectorEventLoopPolicy нужен для стабильной работы asyncio-сокетов
 # после компиляции через Nuitka (ProactorEventLoop может вести себя иначе).
 if sys.platform == "win32":
@@ -1336,9 +1370,20 @@ async def audio_output_and_logic_loop(session, p_audio, audio_queue, stop_event,
 
 async def main():
     if not os.environ.get("GEMINI_API_KEY"):
-        print("Ошибка: API ключ не найден!")
-        print("Задайте GEMINI_API_KEY в окружении, в config.json или создайте файл .env (см. .env.example)")
+        msg = (
+            "API-ключ Gemini не найден.\n\n"
+            "Задайте GEMINI_API_KEY одним из способов:\n"
+            "  • в переменной окружения GEMINI_API_KEY;\n"
+            "  • в config.json (поле \"gemini_api_key\") рядом с Pixie.exe;\n"
+            "  • в файле .env рядом с Pixie.exe (см. .env.example)."
+        )
+        print(f"Ошибка: {msg}")
+        try:
+            ctypes.windll.user32.MessageBoxW(0, msg, "Pixie — не найден API-ключ", 0x30)  # MB_ICONWARNING
+        except Exception:
+            pass
         sys.exit(1)
+
 
     print("="*50)
     print(f"{ASSISTANT_NAME} – UE 5.8 Full Control [Blueprint + Camera + Content]")
