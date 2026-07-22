@@ -46,11 +46,19 @@ jobs:
 
       - name: Build with Nuitka (--onefile)
         run: |
+          # google.genai.types — гигантский автогенерированный модуль (десятки тысяч
+          # Pydantic-классов). Попытка скомпилировать его в C приводит к
+          # "cc1.exe: out of memory" на раннере с ограниченной RAM. Поэтому этот
+          # модуль явно не компилируем (--nofollow-import-to), но всё равно
+          # вшиваем в сборку как обычный интерпретируемый Python-код
+          # (--include-module), чтобы он оставался импортируемым в собранном .exe.
           python -m nuitka `
             --standalone `
             --onefile `
             --mingw64 `
             --low-memory `
+            --nofollow-import-to=google.genai.types `
+            --include-module=google.genai.types `
             --windows-console-mode=disable `
             --windows-icon-from-ico=icon.ico `
             --enable-plugin=anti-bloat `
