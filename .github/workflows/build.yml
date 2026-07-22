@@ -49,6 +49,8 @@ jobs:
           python -m nuitka `
             --standalone `
             --onefile `
+            --mingw64 `
+            --low-memory `
             --windows-console-mode=disable `
             --windows-icon-from-ico=icon.ico `
             --enable-plugin=anti-bloat `
