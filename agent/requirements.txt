@@ -6,5 +6,6 @@ pypdf
 pyperclip
 pyautogui
 cryptography
+customtkinter
 
 

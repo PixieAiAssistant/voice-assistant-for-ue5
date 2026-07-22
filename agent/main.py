@@ -91,11 +91,37 @@ LOG_FILE = os.path.join(LOG_DIR, "pixie_agent.log")
 
 # Загружаем config.json один раз при старте (имя ассистента, голос, язык, пути, лицензия)
 APP_CONFIG = load_config()
+
+# ---------- Первый запуск: дружелюбный онбординг вместо ручного редактирования JSON ----------
+# Если пользователь ещё не прошёл настройку (или не указан API-ключ) — показываем
+# анимированный wizard (customtkinter): тема, API-ключ, имя/голос/характер, UE-проект, GDD.
+# Пользователю не нужно ни открывать консоль, ни редактировать config.json руками.
+if not APP_CONFIG.get("onboarding_complete") or not APP_CONFIG.get("gemini_api_key"):
+    try:
+        from onboarding import run_onboarding
+        APP_CONFIG = run_onboarding(edit_mode=False)
+    except BaseException as _onboarding_exc:
+        _fatal_startup_error(_onboarding_exc)
+
+# ---------- Домашний экран (дашборд): показывается на каждом запуске ----------
+# Даёт кнопки Start / Settings / Get Pro без необходимости трогать консоль или файлы.
+try:
+    from app_shell import run_dashboard
+    _dashboard_action = run_dashboard()
+except BaseException as _dashboard_exc:
+    _fatal_startup_error(_dashboard_exc)
+
+if _dashboard_action != "start":
+    sys.exit(0)
+
+# После онбординга/дашборда конфиг мог измениться (Settings) — перечитываем.
+APP_CONFIG = load_config()
 ASSISTANT_NAME = APP_CONFIG.get("assistant_name", "Pixie")
 VOICE_NAME = APP_CONFIG.get("voice_name", "Aoede")
 APP_LANGUAGE = APP_CONFIG.get("language", "en")
 if APP_CONFIG.get("gemini_api_key"):
     os.environ.setdefault("GEMINI_API_KEY", APP_CONFIG["gemini_api_key"])
+
 
 
 def _load_env_file() -> None:
@@ -960,16 +986,27 @@ tools_list = [
     ])
 ]
 
-# ---------- SYSTEM INSTRUCTION (English, name/language from config.json) ----------
+# ---------- SYSTEM INSTRUCTION (English, name/language/personality/project from config.json) ----------
 def _build_system_instruction() -> str:
+    from presets import DEFAULT_PERSONALITY, DEFAULT_PROJECT_TYPE, PERSONALITY_PRESETS, PROJECT_TYPES
+
     name = ASSISTANT_NAME
+    personality_key = APP_CONFIG.get("personality", DEFAULT_PERSONALITY)
+    personality_prompt = PERSONALITY_PRESETS.get(
+        personality_key, PERSONALITY_PRESETS[DEFAULT_PERSONALITY]
+    )["prompt"]
+    project_key = APP_CONFIG.get("project_type", DEFAULT_PROJECT_TYPE)
+    project_prompt = PROJECT_TYPES.get(project_key, PROJECT_TYPES[DEFAULT_PROJECT_TYPE])["prompt"]
+
     return (
-        f"You are {name} — a witty, gamer-friendly AI dev-buddy assistant for Windows and Unreal Engine 5. "
-        "Your style: natural, casual spoken language, zero corporate tone.\n"
+        f"You are {name} — an AI dev-buddy assistant for Windows and Unreal Engine 5. "
+        f"Your personality/style: {personality_prompt}.\n"
+        f"{project_prompt}\n"
         "You have no physical mouse — you control the Windows interface via keyboard actions and code inside the engine.\n"
         "\n"
         f"ACTIVATION: You react and respond only when addressed by your name '{name}'.\n"
         "\n"
+
         "🖥️ FULL PC CONTROL (unrestricted Windows assistant):\n"
         "You are a full-featured voice assistant for Windows. You can perform ANY action on the PC:\n"
         "- File operations via `manage_file` (create/read/list files and folders).\n"
@@ -1419,7 +1456,7 @@ async def main():
         print(f"[Система]: Индекс библиотеки пропущен: {exc}")
 
     if gdd_text_content:
-        dynamic_instruction += f"\n\n--- ДИЗДОК ШУТЕНА ---\n{gdd_text_content}"
+        dynamic_instruction += f"\n\n--- GAME DESIGN DOCUMENT ---\n{gdd_text_content}"
 
     print("\n[Система]: Загрузка контекста Unreal Engine...")
     try:

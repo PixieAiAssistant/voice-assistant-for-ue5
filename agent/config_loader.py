@@ -29,9 +29,12 @@ CONFIG_PATH = BASE_DIR / "config.json"
 
 DEFAULTS: dict[str, Any] = {
     "gemini_api_key": "",
+    "ai_provider": "gemini",
     "language": "en",
     "assistant_name": "Pixie",
     "voice_name": "Aoede",
+    "personality": "witty_gamer",
+    "project_type": "ue_shooter",
     "ue_project_path": "",
     "ue_engine_path": "",
     "ue_recipes_path": "./ue58_recipes",
@@ -41,6 +44,7 @@ DEFAULTS: dict[str, Any] = {
     "license_auto_check": True,
     "theme": "dark",
     "telemetry": True,
+    "onboarding_complete": False,
 }
 
 

@@ -101,8 +101,8 @@ It understands natural language, speaks back, and can **control Unreal Engine**,
 ### Installation
 
 ```bash
-git clone https://github.com/dmanucharyan-del/pixie-ai.git
-cd pixie-ai
+git clone https://github.com/PixieAiAssistant/voice-assistant-for-ue5.git
+cd voice-assistant-for-ue5
 pip install -r agent/requirements.txt
 ```
 

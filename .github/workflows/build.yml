@@ -52,6 +52,8 @@ jobs:
           # модуль явно не компилируем (--nofollow-import-to), но всё равно
           # вшиваем в сборку как обычный интерпретируемый Python-код
           # (--include-module), чтобы он оставался импортируемым в собранном .exe.
+          # --enable-plugin=tk-inter упаковывает tkinter/Tcl-Tk runtime, необходимый
+          # для онбординга и дашборда на customtkinter (app_shell.py/onboarding.py).
           python -m nuitka `
             --standalone `
             --onefile `
@@ -62,6 +64,13 @@ jobs:
             --windows-console-mode=disable `
             --windows-icon-from-ico=icon.ico `
             --enable-plugin=anti-bloat `
+            --enable-plugin=tk-inter `
+            --include-package=customtkinter `
+            --include-package-data=customtkinter `
+            --include-module=onboarding `
+            --include-module=app_shell `
+            --include-module=ui_theme `
+            --include-module=presets `
             --assume-yes-for-downloads `
             --output-dir=dist `
             --output-filename=Pixie.exe `
