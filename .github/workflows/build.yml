@@ -53,29 +53,31 @@ jobs:
           # вшиваем в сборку как обычный интерпретируемый Python-код
           # (--include-module), чтобы он оставался импортируемым в собранном .exe.
           #
-          # google.genai._gaos — вложенный пакет Agent Builder / Interactions API
-          # (не используется этим проектом, нужен только Live API), но безусловно
-          # импортируется внутри google.genai.__init__ и содержит динамические
-          # импорты (dynamic_imports.py), которые статический анализатор Nuitka
-          # не может полностью протрассировать. Из-за этого часть файлов пакета
-          # (например _gaos/utils/url.py) не попадала в собранный .exe и падала
-          # с ImportError при запуске. Явно исключаем его из C-компиляции
-          # (--nofollow-import-to), но force-инклюдим ВЕСЬ пакет целиком как
-          # обычные .py-файлы (--include-package + --include-package-data),
-          # чтобы ничего не потерялось независимо от динамических импортов.
+          # google.genai._gaos — вложенный пакет Agent Builder / Interactions API,
+          # который google.genai.client импортирует БЕЗУСЛОВНО обычными статическими
+          # `from ._gaos.sdk import ...` (не динамическими!). Раньше этот пакет
+          # исключался из трассировки (--nofollow-import-to) с попыткой force-include
+          # его как данных — это оказалось ненадёжным: часть файлов (например
+          # _gaos/utils/url.py) всё равно не попадала в собранный .exe и падала с
+          # ImportError при запуске. В отличие от google.genai.types (один гигантский
+          # автогенерированный файл на десятки тысяч классов, реально вызывающий
+          # cc1.exe OOM), _gaos — это много МЕЛКИХ файлов, поэтому просто НЕ исключаем
+          # его: пусть Nuitka трассирует и компилирует как обычный код, это надёжнее
+          # и не должно приводить к OOM.
           #
           # --enable-plugin=tk-inter упаковывает tkinter/Tcl-Tk runtime, необходимый
           # для онбординга и дашборда на customtkinter (app_shell.py/onboarding.py).
+          # --disable-ccache и --jobs=2 снижают пиковое потребление памяти при
+          # компиляции большого числа небольших C-файлов из _gaos на раннере
+          # с ограниченной RAM (обходим OOM без необходимости исключать пакет целиком).
           python -m nuitka `
             --standalone `
             --onefile `
             --mingw64 `
             --low-memory `
+            --jobs=2 `
             --nofollow-import-to=google.genai.types `
             --include-module=google.genai.types `
-            --nofollow-import-to=google.genai._gaos `
-            --include-package=google.genai._gaos `
-            --include-package-data=google.genai._gaos `
             --windows-console-mode=disable `
             --windows-icon-from-ico=icon.ico `
             --enable-plugin=anti-bloat `
@@ -90,6 +92,7 @@ jobs:
             --output-dir=dist `
             --output-filename=Pixie.exe `
             main.py
+
 
 
       - name: Verify build output
