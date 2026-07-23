@@ -7,5 +7,6 @@ pyperclip
 pyautogui
 cryptography
 customtkinter
+pyinstaller
 
 

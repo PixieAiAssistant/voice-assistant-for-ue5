@@ -42,15 +42,19 @@ class Dashboard(ctk.CTk):
 
         top_row = ctk.CTkFrame(outer, fg_color="transparent")
         top_row.pack(fill="x")
-        self.theme_switch = ctk.CTkSwitch(
-            top_row, text="Light mode", command=self._on_theme_toggle,
-            onvalue="light", offvalue="dark", progress_color=theme.ACCENT,
+        theme_row = ctk.CTkFrame(top_row, fg_color="transparent")
+        theme_row.pack(side="right")
+        self.dark_btn = ctk.CTkButton(
+            theme_row, text="🌙 Dark", width=90, height=30, corner_radius=theme.RADIUS,
+            command=lambda: self._on_theme_pick("dark"),
         )
-        self.theme_switch.pack(side="right")
-        if self.data.get("theme", "dark") == "light":
-            self.theme_switch.select()
-        else:
-            self.theme_switch.deselect()
+        self.dark_btn.pack(side="left", padx=(0, 6))
+        self.light_btn = ctk.CTkButton(
+            theme_row, text="☀ Light", width=90, height=30, corner_radius=theme.RADIUS,
+            command=lambda: self._on_theme_pick("light"),
+        )
+        self.light_btn.pack(side="left")
+        self._refresh_theme_buttons()
 
         # --- Заголовок / логотип ---
         ctk.CTkLabel(
@@ -118,10 +122,27 @@ class Dashboard(ctk.CTk):
             hover_color=theme.COLOR_ENTRY, command=self._on_exit,
         ).pack(fill="x", pady=(8, 0))
 
-    def _on_theme_toggle(self):
-        new_theme = self.theme_switch.get()
+    def _on_theme_pick(self, new_theme: str):
         theme.apply_theme(new_theme)
         self.data = update_config(theme=new_theme)
+        self._refresh_theme_buttons()
+
+    def _refresh_theme_buttons(self):
+        """Подсвечивает активную тему заливкой+обводкой, вторая кнопка — прозрачная
+        с рамкой. Раньше был обычный CTkSwitch без чёткой индикации выбранного
+        состояния — по просьбе сделано явным и презентабельным, как в онбординге."""
+        selected = self.data.get("theme", "dark")
+        for btn, key in ((self.dark_btn, "dark"), (self.light_btn, "light")):
+            if key == selected:
+                btn.configure(
+                    fg_color=theme.ACCENT, hover_color=theme.ACCENT_HOVER,
+                    text_color="#ffffff", border_width=2, border_color=theme.ACCENT,
+                )
+            else:
+                btn.configure(
+                    fg_color="transparent", hover_color=theme.COLOR_ENTRY,
+                    text_color=theme.COLOR_TEXT, border_width=1, border_color=theme.COLOR_BORDER,
+                )
 
     def _on_start(self):
         self.action = "start"

@@ -80,3 +80,18 @@ AI_PROVIDERS: dict[str, dict[str, object]] = {
 DEFAULT_PROVIDER = "gemini"
 DEFAULT_PERSONALITY = "witty_gamer"
 DEFAULT_PROJECT_TYPE = "ue_shooter"
+
+# Языки интерфейса/общения ассистента — 7 самых популярных языков в мире
+# (по числу носителей+изучающих), выбираются на самом первом шаге онбординга.
+# code — BCP-47 код, используется как language_code для Gemini Live speech_config.
+UI_LANGUAGES: dict[str, dict[str, str]] = {
+    "en": {"label": "🇬🇧 English", "code": "en-US"},
+    "ru": {"label": "🇷🇺 Русский", "code": "ru-RU"},
+    "es": {"label": "🇪🇸 Español", "code": "es-ES"},
+    "zh": {"label": "🇨🇳 中文", "code": "cmn-CN"},
+    "hi": {"label": "🇮🇳 हिन्दी", "code": "hi-IN"},
+    "fr": {"label": "🇫🇷 Français", "code": "fr-FR"},
+    "de": {"label": "🇩🇪 Deutsch", "code": "de-DE"},
+}
+
+DEFAULT_UI_LANGUAGE = "en"

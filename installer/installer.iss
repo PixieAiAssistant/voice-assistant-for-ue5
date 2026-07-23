@@ -1,28 +1,41 @@
 ; installer.iss — Inno Setup script for Pixie Assistant
 ;
 ; Собирает установщик Windows для Pixie:
-;   - копирует main.exe (собранный через Nuitka) и папку ue58_recipes
+;   - копирует ВСЮ папку dist\Pixie (собранную PyInstaller в режиме --onedir:
+;     Pixie.exe + все DLL/зависимости рядом — это НАМЕРЕННО отличается от
+;     Nuitka/PyInstaller --onefile: единый самораспаковывающийся exe гораздо
+;     чаще ложно детектится антивирусами/SmartScreen как троян, а обычная
+;     папка с обычным exe — почти никогда)
+;   - копирует папку ue58_recipes (Pro-контент, доступ блокируется в коде
+;     через licensing.is_pro_active(), поэтому копировать безопасно всегда)
 ;   - регистрирует протокол pixie:// (для авто-применения лицензионного ключа
 ;     из письма, см. licensing.try_apply_from_argv + main.py)
 ;   - создаёт ярлыки на рабочем столе и в меню "Пуск"
 ;   - создаёт ключ реестра HKCU\Software\Pixie (используется licensing.py
 ;     для хранения machine_id; сами настройки хранятся в config.json рядом
-;     с exe, а не в реестре)
+;     с exe — создаётся автоматически при первом запуске онбордингом,
+;     поэтому в установщик не кладём)
 ;
-; Соберите main.py в exe ПЕРЕД запуском Inno Setup:
-;   nuitka --standalone --onefile --windows-disable-console ^
-;          --windows-icon-from-ico=icon.ico ^
-;          --output-dir=dist --output-filename=Pixie.exe main.py
+; Соберите main.py в exe ПЕРЕД запуском Inno Setup (PyInstaller, --onedir):
+;   cd agent
+;   pyinstaller --noconfirm --onedir --windowed --name Pixie ^
+;       --collect-all google.genai --collect-all customtkinter ^
+;       --hidden-import=onboarding --hidden-import=app_shell ^
+;       --hidden-import=ui_theme --hidden-import=presets ^
+;       --icon=icon.ico main.py
 ;
 ; Затем скомпилируйте этот файл через Inno Setup Compiler (ISCC.exe):
 ;   ISCC.exe installer.iss
+;   (CI передаёт версию релиза через /DMyAppVersion="1.2.0")
 ;
 ; Требуется Inno Setup 6+: https://jrsoftware.org/isinfo.php
 
 #define MyAppName "Pixie"
-#define MyAppVersion "1.0.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "Pixie Assistant"
-#define MyAppURL "https://dmanucharyan-del.github.io/pixie-ai/"
+#define MyAppURL "https://pixie-ai.pro/"
 #define MyAppExeName "Pixie.exe"
 
 ; Пути относительно этого .iss файла — подправьте под свою структуру,
@@ -40,12 +53,17 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-; У нас нет EV Code Signing на старте (см. план) — просто без подписи.
-; Пользователям Windows SmartScreen может показать предупреждение при
-; первом запуске установщика/приложения, пока не наберётся репутация
-; или вы не отправите бинарник на проверку в Microsoft.
+; У нас нет EV Code Signing на старте — установщик и exe без подписи.
+; Windows SmartScreen может показать предупреждение "Unknown publisher" при
+; первом запуске, пока не наберётся репутация или пока не будет куплен
+; Authenticode-сертификат. Это ожидаемо и указано в описании релиза на GitHub.
 OutputDir=output
-OutputBaseFilename=PixieSetup-{#MyAppVersion}
+; Имя файла ФИКСИРОВАННОЕ (без версии), чтобы на сайте можно было дать
+; постоянную прямую ссылку на скачивание последнего релиза:
+;   https://github.com/<org>/<repo>/releases/latest/download/PixieSetup.exe
+; Версия всё равно видна пользователю в самом установщике (AppVersion) и
+; в названии GitHub Release.
+OutputBaseFilename=PixieSetup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -54,7 +72,7 @@ WizardStyle=modern
 PrivilegesRequired=lowest
 DefaultDirName={localappdata}\Programs\{#MyAppName}
 UsePreviousAppDir=yes
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64compatible
 
 
 
@@ -66,20 +84,20 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-; Главный exe, собранный Nuitka (--onefile). Подправьте путь при необходимости.
-Source: "{#SourceDist}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; Вся папка PyInstaller --onedir (Pixie.exe + все DLL/зависимости рядом).
+; Именно поэтому Source указывает на "\Pixie\*", а не на один exe-файл.
+Source: "{#SourceDist}\Pixie\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; Папка с рецептами UE 5.8 (нужна только для Pro-функций, но копируется всегда —
 ; guard на уровне licensing.is_pro_active() блокирует доступ без подписки).
 Source: "{#SourcePython}\ue58_recipes\*"; DestDir: "{app}\ue58_recipes"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-; Шаблон конфигурации — при первом запуске main.py создаст/дополнит config.json
-; в папке приложения. Если у вас уже есть готовый config.json без секретов,
-; можно скопировать его сюда.
-Source: "{#SourcePython}\config.json"; DestDir: "{app}"; Flags: onlyifdoesntexist
-
-; Публичный ключ RSA — обязателен, приватный НИКОГДА не должен сюда попасть.
+; Публичный ключ RSA — обязателен, приватный НИКОГДА не должен сюда попадать.
 Source: "{#SourcePython}\public_key.pem"; DestDir: "{app}"; Flags: ignoreversion; Check: FileExists(ExpandConstant('{#SourcePython}\public_key.pem'))
+
+; config.json НЕ копируем: main.py/config_loader.py создаёт его автоматически
+; при первом запуске (через онбординг-wizard), так что в установщике
+; отсутствие файла — это правильное поведение, а не упущение.
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -107,3 +125,4 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}
 ; Удаляем состояние лицензии/конфиг при полном удалении, чтобы не оставлять
 ; ключи на диске (пользователь может переустановить и активировать заново).
 Type: files; Name: "{app}\pixie_license_state.json"
+Type: files; Name: "{app}\config.json"
