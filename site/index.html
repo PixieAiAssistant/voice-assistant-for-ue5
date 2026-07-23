@@ -243,7 +243,7 @@
           <li>Full UE5 Pro toolset</li>
           <li>Priority email support</li>
         </ul>
-        <a class="btn btn-primary" href="https://app.lava.top/YOUR_PRODUCT_MONTHLY" target="_blank" rel="noopener">Buy Monthly</a>
+        <a class="btn btn-primary" data-payment-key="lava_monthly" href="#" target="_blank" rel="noopener">Buy Monthly</a>
       </div>
       <div class="price-card featured">
         <span class="save-tag">Save ~17%</span>
@@ -255,12 +255,12 @@
           <li>Priority email support</li>
           <li>Best value for full-time devs</li>
         </ul>
-        <a class="btn btn-primary" href="https://app.lava.top/YOUR_PRODUCT_YEARLY" target="_blank" rel="noopener">Buy Yearly</a>
+        <a class="btn btn-primary" data-payment-key="lava_yearly" href="#" target="_blank" rel="noopener">Buy Yearly</a>
       </div>
     </div>
     <p style="text-align:center; margin-top:32px; color:var(--text-dim); font-size:0.9rem;">
       Prefer crypto? Pay with USDT via
-      <a href="https://nowpayments.io/payment/?YOUR_NOWPAYMENTS_LINK" target="_blank" rel="noopener">NowPayments</a>.
+      <a data-payment-key="nowpayments_crypto" href="#" target="_blank" rel="noopener">NowPayments</a>.
     </p>
   </div>
 </section>
@@ -336,6 +336,7 @@
   </div>
 </footer>
 
+<script src="js/payment_config.js"></script>
 <script>
   const LICENSE_API_BASE = "https://api.pixie-ai.pro"; // license_server.py endpoint
 

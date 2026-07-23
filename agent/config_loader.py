@@ -60,6 +60,10 @@ def load_config() -> dict[str, Any]:
         except Exception:
             data = {}
     merged = {**DEFAULTS, **data}
+    # Строгая очистка API-ключа: удаляем лишние пробелы и содержимое лога,
+    # который мог попасть в строку из-за race condition логгера и записи конфига.
+    if "gemini_api_key" in merged and merged["gemini_api_key"]:
+        merged["gemini_api_key"] = merged["gemini_api_key"].strip().split("\n")[0].strip()
     if not CONFIG_PATH.exists():
         save_config(merged)
     return merged

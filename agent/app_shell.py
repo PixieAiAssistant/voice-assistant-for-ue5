@@ -16,6 +16,7 @@ import licensing
 import ui_theme as theme
 from config_loader import load_config, update_config
 from presets import PERSONALITY_PRESETS, PROJECT_TYPES
+from localization import _ as _loc
 
 PRICING_URL = "https://pixieaiassistant.github.io/voice-assistant-for-ue5/#pricing"
 WINDOW_SIZE = "560x620"
@@ -26,9 +27,10 @@ class Dashboard(ctk.CTk):
         super().__init__()
         self.action = "exit"
         self.data = load_config()
+        self._lang = self.data.get("language", "en")
         theme.apply_theme(self.data.get("theme", "dark"))
 
-        self.title(f"{self.data.get('assistant_name', 'Pixie')} — Home")
+        self.title(_loc("window_title", self._lang, name=self.data.get("assistant_name", "Pixie")))
         self.geometry(WINDOW_SIZE)
         self.minsize(480, 560)
         self.configure(fg_color=theme.COLOR_BG)
@@ -45,12 +47,12 @@ class Dashboard(ctk.CTk):
         theme_row = ctk.CTkFrame(top_row, fg_color="transparent")
         theme_row.pack(side="right")
         self.dark_btn = ctk.CTkButton(
-            theme_row, text="🌙 Dark", width=90, height=30, corner_radius=theme.RADIUS,
+            theme_row, text=_loc("dark_btn", self._lang), width=90, height=30, corner_radius=theme.RADIUS,
             command=lambda: self._on_theme_pick("dark"),
         )
         self.dark_btn.pack(side="left", padx=(0, 6))
         self.light_btn = ctk.CTkButton(
-            theme_row, text="☀ Light", width=90, height=30, corner_radius=theme.RADIUS,
+            theme_row, text=_loc("light_btn", self._lang), width=90, height=30, corner_radius=theme.RADIUS,
             command=lambda: self._on_theme_pick("light"),
         )
         self.light_btn.pack(side="left")
@@ -62,7 +64,7 @@ class Dashboard(ctk.CTk):
             text_color=theme.COLOR_TEXT,
         ).pack(pady=(24, 0))
         ctk.CTkLabel(
-            outer, text="Your AI voice assistant is ready.", font=theme.FONT_SUBTITLE,
+            outer, text=_loc("subtitle_ready", self._lang), font=theme.FONT_SUBTITLE,
             text_color=theme.COLOR_TEXT_DIM,
         ).pack(pady=(4, 24))
 
@@ -71,16 +73,17 @@ class Dashboard(ctk.CTk):
         status_card.pack(fill="x", pady=(0, 24))
         pro_status = licensing.get_license_status()
         is_pro = getattr(pro_status, "valid", False)
-        badge_text = "⭐ Pixie Pro — active" if is_pro else "Free plan"
+        badge_text = _loc("pro_active", self._lang) if is_pro else _loc("free_plan", self._lang)
         badge_color = theme.ACCENT if is_pro else theme.COLOR_TEXT_DIM
         ctk.CTkLabel(status_card, text=badge_text, font=theme.FONT_LABEL, text_color=badge_color).pack(
             anchor="w", padx=18, pady=(14, 2)
         )
         personality_label = PERSONALITY_PRESETS.get(self.data.get("personality", ""), {}).get("label", "—")
         project_label = PROJECT_TYPES.get(self.data.get("project_type", ""), {}).get("label", "—")
-        details = (
-            f"Voice: {self.data.get('voice_name', 'Aoede')}   ·   "
-            f"Personality: {personality_label}\nProject: {project_label}"
+        details = _loc("details_line", self._lang,
+            voice=self.data.get('voice_name', 'Aoede'),
+            personality=personality_label,
+            project=project_label,
         )
         ctk.CTkLabel(
             status_card, text=details, font=theme.FONT_BODY, text_color=theme.COLOR_TEXT_DIM,
@@ -89,19 +92,19 @@ class Dashboard(ctk.CTk):
 
         # --- Основные кнопки ---
         ctk.CTkButton(
-            outer, text="▶  Start Pixie", height=52, font=theme.FONT_LABEL,
+            outer, text=_loc("start_btn", self._lang), height=52, font=theme.FONT_LABEL,
             corner_radius=theme.RADIUS, fg_color=theme.ACCENT, hover_color=theme.ACCENT_HOVER,
             command=self._on_start,
         ).pack(fill="x", pady=(0, 12))
 
         ctk.CTkButton(
-            outer, text="⚙  Settings", height=44, font=theme.FONT_BODY,
+            outer, text=_loc("settings_btn", self._lang), height=44, font=theme.FONT_BODY,
             corner_radius=theme.RADIUS, fg_color="transparent", border_width=1,
             border_color=theme.COLOR_BORDER, text_color=theme.COLOR_TEXT, hover_color=theme.COLOR_ENTRY,
             command=self._on_settings,
         ).pack(fill="x", pady=(0, 12))
 
-        pro_btn_text = "⭐  Manage subscription" if is_pro else "⭐  Get Pixie Pro"
+        pro_btn_text = _loc("manage_sub", self._lang) if is_pro else _loc("get_pro", self._lang)
         ctk.CTkButton(
             outer, text=pro_btn_text, height=44, font=theme.FONT_BODY,
             corner_radius=theme.RADIUS, fg_color="transparent", border_width=1,
@@ -112,12 +115,12 @@ class Dashboard(ctk.CTk):
         if not is_pro:
             ctk.CTkLabel(
                 outer,
-                text="Pro unlocks full Unreal Engine control: actors, Blueprints, camera & more.",
+                text=_loc("pro_hint", self._lang),
                 font=theme.FONT_SMALL, text_color=theme.COLOR_TEXT_DIM, wraplength=460, justify="center",
             ).pack(pady=(0, 12))
 
         ctk.CTkButton(
-            outer, text="Exit", height=36, font=theme.FONT_SMALL,
+            outer, text=_loc("exit_btn", self._lang), height=36, font=theme.FONT_SMALL,
             corner_radius=theme.RADIUS, fg_color="transparent", text_color=theme.COLOR_TEXT_DIM,
             hover_color=theme.COLOR_ENTRY, command=self._on_exit,
         ).pack(fill="x", pady=(8, 0))
@@ -145,6 +148,69 @@ class Dashboard(ctk.CTk):
                 )
 
     def _on_start(self):
+        """Показывает индикатор загрузки, затем запускает main().
+        
+        При клике на Start:
+        1. Кнопка блокируется (disabled) и показывает "Connecting to Gemini..."
+        2. Появляется визуальный спиннер/текст загрузки
+        3. Через 50ms (чтобы UI успел обновиться) окно закрывается и
+           управление передаётся main() — асинхронная инициализация
+           (подключение к Gemini, индексация библиотеки, загрузка UE-контекста)
+           занимает ~7 секунд и идёт уже в main() без блокировки GUI.
+        """
+        # Блокируем кнопку и показываем статус загрузки
+        self._show_loading_overlay()
+        # Даём 50ms на отрисовку UI, затем закрываем и запускаем main()
+        self.after(50, self._finish_start)
+
+    def _show_loading_overlay(self):
+        """Создаёт overlay поверх дашборда с индикатором загрузки."""
+        # Затемняющий фон
+        self._loading_overlay = ctk.CTkFrame(self, fg_color=theme.COLOR_BG, corner_radius=0)
+        self._loading_overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        # Контейнер по центру
+        center = ctk.CTkFrame(self._loading_overlay, fg_color="transparent")
+        center.place(relx=0.5, rely=0.5, anchor="center")
+
+        # Спиннер (анимированный текст)
+        self._spinner_label = ctk.CTkLabel(
+            center, text="⏳", font=("Segoe UI", 48),
+            text_color=theme.ACCENT,
+        )
+        self._spinner_label.pack(pady=(0, 16))
+
+        # Текст статуса
+        self._loading_text = ctk.CTkLabel(
+            center, text="Connecting to Gemini...",
+            font=theme.FONT_LABEL, text_color=theme.COLOR_TEXT,
+        )
+        self._loading_text.pack(pady=(0, 8))
+
+        self._loading_sub = ctk.CTkLabel(
+            center, text="This may take a few seconds",
+            font=theme.FONT_SMALL, text_color=theme.COLOR_TEXT_DIM,
+        )
+        self._loading_sub.pack()
+
+        # Анимация спиннера (вращение символов)
+        self._spinner_chars = ["⏳", "⌛", "⏳", "⌛"]
+        self._spinner_idx = 0
+        self._animate_spinner()
+
+    def _animate_spinner(self):
+        """Анимирует спиннер через смену символа каждые 500ms."""
+        if not getattr(self, "_loading_overlay", None):
+            return
+        self._spinner_idx = (self._spinner_idx + 1) % len(self._spinner_chars)
+        try:
+            self._spinner_label.configure(text=self._spinner_chars[self._spinner_idx])
+        except Exception:
+            pass
+        self.after(500, self._animate_spinner)
+
+    def _finish_start(self):
+        """Закрывает дашборд и передаёт управление main()."""
         self.action = "start"
         self.destroy()
 

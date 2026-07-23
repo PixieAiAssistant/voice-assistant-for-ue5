@@ -28,6 +28,7 @@ from tkinter import filedialog
 
 import customtkinter as ctk
 
+import licensing
 import ui_theme as theme
 from config_loader import BASE_DIR, load_config, save_config
 from presets import (
@@ -41,6 +42,7 @@ from presets import (
     PROJECT_TYPES,
     UI_LANGUAGES,
 )
+from localization import _ as _loc
 
 WINDOW_SIZE = "760x560"
 SETTINGS_WINDOW_SIZE = "640x720"
@@ -591,6 +593,7 @@ class QuickSettingsWindow(ctk.CTk):
         self._build_field_project(scroll)
         self._build_field_ue(scroll)
         self._build_field_gdd(scroll)
+        self._build_field_license(scroll)
 
         nav = ctk.CTkFrame(outer, fg_color="transparent")
         nav.pack(fill="x", pady=(16, 0))
@@ -765,6 +768,77 @@ class QuickSettingsWindow(ctk.CTk):
             self.after(3500, lambda: self.status_label.configure(text=""))
         except OSError as exc:
             self.gdd_label.configure(text=f"❌ Failed to copy file: {exc}", text_color="#ef4444")
+
+    def _build_field_license(self, master):
+        """Секция активации Pixie Pro — поле ввода лицензионного ключа + статус."""
+        self._section_label(master, "Pixie Pro License")
+
+        # Текущий статус
+        pro_status = licensing.get_license_status()
+        is_pro = getattr(pro_status, "valid", False)
+        if is_pro:
+            plan = getattr(pro_status, "plan", "") or ""
+            expiry = getattr(pro_status, "expiry", "") or ""
+            status_text = f"✅ Pixie Pro active ({plan})"
+            if expiry:
+                status_text += f" — expires: {expiry[:10]}"
+            status_color = theme.COLOR_SUCCESS
+        else:
+            reason = getattr(pro_status, "reason", "") or "Not activated"
+            status_text = f"❌ {reason}"
+            status_color = "#f87171"
+
+        self._license_status_label = ctk.CTkLabel(
+            master, text=status_text, font=theme.FONT_BODY, text_color=status_color,
+        )
+        self._license_status_label.pack(anchor="w", pady=(0, 6))
+
+        # Поле ввода ключа
+        lic_row = ctk.CTkFrame(master, fg_color="transparent")
+        lic_row.pack(anchor="w", fill="x")
+        self.license_entry = _paste_entry(
+            lic_row, width=380, corner_radius=theme.RADIUS,
+            placeholder_text="Paste your Pro license key here",
+        )
+        self.license_entry.pack(side="left")
+        if self.data.get("license_key"):
+            self.license_entry.insert(0, self.data["license_key"])
+
+        ctk.CTkButton(
+            lic_row, text="Activate", width=100, corner_radius=theme.RADIUS,
+            fg_color=theme.ACCENT, hover_color=theme.ACCENT_HOVER,
+            command=self._on_activate_license,
+        ).pack(side="left", padx=(8, 0))
+
+        # Ссылка на покупку
+        ctk.CTkButton(
+            master, text="Get a license key →", fg_color="transparent",
+            text_color=theme.ACCENT_2, hover_color=theme.COLOR_ENTRY, anchor="w",
+            command=lambda: webbrowser.open(licensing.PRO_PURCHASE_URL),
+        ).pack(anchor="w", pady=(4, 0))
+
+    def _on_activate_license(self):
+        """Проверяет введённый лицензионный ключ и обновляет статус."""
+        key = self.license_entry.get().strip()
+        if not key:
+            self._license_status_label.configure(
+                text="❌ Please enter a license key", text_color="#f87171"
+            )
+            return
+        result = licensing.apply_license_key(key)
+        if result.valid:
+            plan = result.plan or ""
+            expiry = result.expiry or ""
+            status = f"✅ Pixie Pro active ({plan})"
+            if expiry:
+                status += f" — expires: {expiry[:10]}"
+            self._license_status_label.configure(text=status, text_color=theme.COLOR_SUCCESS)
+            self.status_label.configure(text="✅ License activated!")
+            self.after(3000, lambda: self.status_label.configure(text=""))
+        else:
+            self._license_status_label.configure(
+                text=f"❌ {result.reason}", text_color="#f87171"
+            )
 
     # --- Сохранение ---
 

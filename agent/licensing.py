@@ -381,12 +381,19 @@ def _check_revoked_online(key: str) -> Optional[bool]:
     Вызывается не чаще раза в 24 часа (см. is_pro_active), поэтому не мешает
     офлайн-работе — при отсутствии интернета приложение продолжает работать
     по локально проверенному ключу до истечения его срока действия.
+
+    ВАЖНО: Ключ передаётся в JSON-теле POST-запроса, а не в URL,
+    чтобы не светить его в логах CDN/прокси/обращениях к серверу.
     """
     try:
         import urllib.request
-        import urllib.parse
-        url = f"{LICENSE_API_BASE}/license/validate?" + urllib.parse.urlencode({"key": key})
-        with urllib.request.urlopen(url, timeout=ONLINE_CHECK_TIMEOUT) as resp:
+        req = urllib.request.Request(
+            f"{LICENSE_API_BASE}/license/validate",
+            data=json.dumps({"key": key}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=ONLINE_CHECK_TIMEOUT) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return not bool(data.get("valid", True))
     except Exception:

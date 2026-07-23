@@ -127,8 +127,28 @@ except Exception:
     APP_LANGUAGE_CODE = "en-US"
     APP_LANGUAGE_LABEL = "English"
 if APP_CONFIG.get("gemini_api_key"):
+    # Строгая очистка API-ключа перед установкой в окружение
+    _raw_key = APP_CONFIG["gemini_api_key"]
+    _clean_key = _raw_key.strip().split("\n")[0].strip()
+    os.environ.setdefault("GEMINI_API_KEY", _clean_key)
 
-    os.environ.setdefault("GEMINI_API_KEY", APP_CONFIG["gemini_api_key"])
+# ---------- ПРОКСИ: HTTP_PROXY / HTTPS_PROXY ----------
+# Gemini Live API использует websockets и google.genai.Client().
+# Если в системе заданы HTTP_PROXY/HTTPS_PROXY (например, через VPN-клиент
+# с TUN-интерфейсом или корпоративный прокси), библиотеки urllib3/httpx
+# и aiohttp должны их автоматически подхватить. Явно логируем для отладки.
+_proxy_http = os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy") or ""
+_proxy_https = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy") or ""
+if _proxy_http or _proxy_https:
+    print(f"[Система]: Обнаружен HTTP-прокси: HTTP={_proxy_http or '—'}, HTTPS={_proxy_https or '—'}")
+    # Для aiohttp (используется google-genai под капотом) также устанавливаем
+    # переменные в нижнем регистре, так как aiohttp смотрит на http_proxy/https_proxy
+    if _proxy_http and not os.environ.get("http_proxy"):
+        os.environ["http_proxy"] = _proxy_http
+    if _proxy_https and not os.environ.get("https_proxy"):
+        os.environ["https_proxy"] = _proxy_https
+else:
+    print("[Система]: HTTP-прокси не обнаружен (работаем напрямую)")
 
 
 
@@ -996,7 +1016,7 @@ tools_list = [
 
 # ---------- SYSTEM INSTRUCTION (English, name/language/personality/project from config.json) ----------
 def _build_system_instruction() -> str:
-    from presets import DEFAULT_PERSONALITY, DEFAULT_PROJECT_TYPE, PERSONALITY_PRESETS, PROJECT_TYPES
+    from presets import DEFAULT_PERSONALITY, DEFAULT_PROJECT_TYPE, PERSONALITY_PRESETS, PROJECT_TYPES, UI_LANGUAGES as _UI_LANGUAGES_BUILD
 
     name = ASSISTANT_NAME
     personality_key = APP_CONFIG.get("personality", DEFAULT_PERSONALITY)
@@ -1006,11 +1026,19 @@ def _build_system_instruction() -> str:
     project_key = APP_CONFIG.get("project_type", DEFAULT_PROJECT_TYPE)
     project_prompt = PROJECT_TYPES.get(project_key, PROJECT_TYPES[DEFAULT_PROJECT_TYPE])["prompt"]
 
+    # === ИСПРАВЛЕНИЕ: читаем язык напрямую из APP_CONFIG (который перезагружен
+    # после дашборда/настроек), а не из модульных глобалов APP_LANGUAGE_CODE/LABEL,
+    # которые были установлены ДО того, как пользователь мог изменить язык в Settings.
+    _lang_key = APP_CONFIG.get("language", "en")
+    _lang_info = _UI_LANGUAGES_BUILD.get(_lang_key, _UI_LANGUAGES_BUILD["en"])
+    _lang_code = _lang_info.get("code", "en-US")
+    _lang_label = _lang_info.get("label", "English")
+
     return (
         f"You are {name} — an AI dev-buddy assistant for Windows and Unreal Engine 5. "
         f"Your personality/style: {personality_prompt}.\n"
         f"{project_prompt}\n"
-        f"🗣️ SPOKEN LANGUAGE: Always speak and respond ONLY in {APP_LANGUAGE_LABEL} ({APP_LANGUAGE_CODE}), "
+        f"🗣️ SPOKEN LANGUAGE: Always speak and respond ONLY in {_lang_label} ({_lang_code}), "
         f"regardless of the language used internally in this prompt. This is the user's chosen language — "
         f"never switch to another language unless the user explicitly asks you to.\n"
 
@@ -1549,11 +1577,42 @@ async def main():
                         audio_output_and_logic_loop(session, p_audio, audio_queue, stop_event, session_state),
                     )
             except Exception as e:
-                logger.error("Connection error: %s", e)
+                error_str = str(e)
+                logger.error("Connection error: %s", error_str)
                 logger.error(traceback.format_exc())
-                print(f"[Ошибка подключения сессии]: {e}")
+                print(f"[Ошибка подключения сессии]: {error_str}")
                 session_state["reconnect"] = True
                 session_state["reason"] = session_state.get("reason") or "error"
+
+                # === ИСПРАВЛЕНИЕ: Ошибка геолокации 1007 / отсутствие сети ===
+                # При ошибке "User location is not supported" (1007) или любой
+                # сетевой ошибке показываем пользователю явное MessageBox-предупреждение
+                # вместо молчаливого сворачивания в бесконечный reconnect-цикл.
+                if any(phrase in error_str.lower() for phrase in [
+                    "1007", "user location", "location is not supported", "geoblock",
+                    "vpn", "blocked", "not supported for the api use",
+                    "connection refused", "no route to host", "connection reset",
+                    "timeout", "timed out", "name or service not known",
+                    "temporary failure in name resolution",
+                    "getaddrinfo failed", "[errno -2]", "[errno -3]",
+                    "not supported for the api use",
+                ]):
+                    geo_msg = (
+                        "Pixie не может подключиться к Gemini Live API.\n\n"
+                        "Возможные причины:\n"
+                        "  • Геоблокировка — включите VPN\n"
+                        "  • Отсутствует подключение к интернету\n"
+                        "  • Блокировка портов корпоративным/антивирусным ПО\n"
+                        "  • Неверный DNS (попробуйте 8.8.8.8 / 1.1.1.1)\n\n"
+                        "Проверьте соединение, включите VPN и нажмите OK."
+                    )
+                    try:
+                        ctypes.windll.user32.MessageBoxW(
+                            0, geo_msg, "Pixie — ошибка подключения (1007)", 0x30  # MB_ICONWARNING
+                        )
+                    except Exception:
+                        pass
+                    print(f"\n[Система]: {geo_msg}")
 
             resumption_handle = session_state.get("handle") or resumption_handle
 
@@ -1573,7 +1632,16 @@ async def main():
                 )
                 break
 
-            await asyncio.sleep(1.0 if session_state.get("reason") == "error" else 0.2)
+            # === ИСПРАВЛЕНИЕ: Пауза перед переподключением ===
+            # При ошибках сети/геоблокировки необходимо дать время VPN-туннелю
+            # или DNS-серверу на восстановление. Без паузы reconnect уходит в
+            # бесконечный цикл с миллисекундными попытками, что нагружает процессор
+            # и не даёт сети стабилизироваться.
+            if session_state.get("reason") == "error":
+                logger.info("Пауза 3 секунды перед переподключением (ошибка соединения)")
+                await asyncio.sleep(3.0)
+            else:
+                await asyncio.sleep(0.2)
     finally:
         p_audio.terminate()
         sys.exit(0)
