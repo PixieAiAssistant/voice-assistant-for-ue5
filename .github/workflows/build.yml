@@ -52,6 +52,18 @@ jobs:
           # модуль явно не компилируем (--nofollow-import-to), но всё равно
           # вшиваем в сборку как обычный интерпретируемый Python-код
           # (--include-module), чтобы он оставался импортируемым в собранном .exe.
+          #
+          # google.genai._gaos — вложенный пакет Agent Builder / Interactions API
+          # (не используется этим проектом, нужен только Live API), но безусловно
+          # импортируется внутри google.genai.__init__ и содержит динамические
+          # импорты (dynamic_imports.py), которые статический анализатор Nuitka
+          # не может полностью протрассировать. Из-за этого часть файлов пакета
+          # (например _gaos/utils/url.py) не попадала в собранный .exe и падала
+          # с ImportError при запуске. Явно исключаем его из C-компиляции
+          # (--nofollow-import-to), но force-инклюдим ВЕСЬ пакет целиком как
+          # обычные .py-файлы (--include-package + --include-package-data),
+          # чтобы ничего не потерялось независимо от динамических импортов.
+          #
           # --enable-plugin=tk-inter упаковывает tkinter/Tcl-Tk runtime, необходимый
           # для онбординга и дашборда на customtkinter (app_shell.py/onboarding.py).
           python -m nuitka `
@@ -61,6 +73,9 @@ jobs:
             --low-memory `
             --nofollow-import-to=google.genai.types `
             --include-module=google.genai.types `
+            --nofollow-import-to=google.genai._gaos `
+            --include-package=google.genai._gaos `
+            --include-package-data=google.genai._gaos `
             --windows-console-mode=disable `
             --windows-icon-from-ico=icon.ico `
             --enable-plugin=anti-bloat `
@@ -75,6 +90,7 @@ jobs:
             --output-dir=dist `
             --output-filename=Pixie.exe `
             main.py
+
 
       - name: Verify build output
         run: |
