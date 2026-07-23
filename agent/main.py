@@ -119,7 +119,15 @@ APP_CONFIG = load_config()
 ASSISTANT_NAME = APP_CONFIG.get("assistant_name", "Pixie")
 VOICE_NAME = APP_CONFIG.get("voice_name", "Aoede")
 APP_LANGUAGE = APP_CONFIG.get("language", "en")
+try:
+    from presets import UI_LANGUAGES as _UI_LANGUAGES
+    APP_LANGUAGE_CODE = _UI_LANGUAGES.get(APP_LANGUAGE, {}).get("code", "en-US")
+    APP_LANGUAGE_LABEL = _UI_LANGUAGES.get(APP_LANGUAGE, {}).get("label", "English")
+except Exception:
+    APP_LANGUAGE_CODE = "en-US"
+    APP_LANGUAGE_LABEL = "English"
 if APP_CONFIG.get("gemini_api_key"):
+
     os.environ.setdefault("GEMINI_API_KEY", APP_CONFIG["gemini_api_key"])
 
 
@@ -1002,6 +1010,10 @@ def _build_system_instruction() -> str:
         f"You are {name} — an AI dev-buddy assistant for Windows and Unreal Engine 5. "
         f"Your personality/style: {personality_prompt}.\n"
         f"{project_prompt}\n"
+        f"🗣️ SPOKEN LANGUAGE: Always speak and respond ONLY in {APP_LANGUAGE_LABEL} ({APP_LANGUAGE_CODE}), "
+        f"regardless of the language used internally in this prompt. This is the user's chosen language — "
+        f"never switch to another language unless the user explicitly asks you to.\n"
+
         "You have no physical mouse — you control the Windows interface via keyboard actions and code inside the engine.\n"
         "\n"
         f"ACTIVATION: You react and respond only when addressed by your name '{name}'.\n"
@@ -1510,9 +1522,13 @@ async def main():
                 response_modalities=["AUDIO"],
                 system_instruction=types.Content(parts=[types.Part.from_text(text=dynamic_instruction)]),
                 tools=tools_list,
-                speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
-                    prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=VOICE_NAME)
-                )),
+                speech_config=types.SpeechConfig(
+                    language_code=APP_LANGUAGE_CODE,
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=VOICE_NAME)
+                    ),
+                ),
+
                 session_resumption=types.SessionResumptionConfig(handle=resumption_handle),
             )
 
@@ -1563,5 +1579,19 @@ async def main():
         sys.exit(0)
 
 if __name__ == "__main__":
-    try: asyncio.run(main())
-    except KeyboardInterrupt: sys.exit(0)
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        sys.exit(0)
+    except SystemExit:
+        raise
+    except BaseException as _main_exc:
+        # ВАЖНО: собранный .exe запускается с --windowed (без консоли), поэтому
+        # необработанное исключение внутри main() (например, pyaudio не нашёл
+        # микрофон/динамики, ошибка сети при первом connect и т.п.) раньше приводило
+        # к ПОЛНОСТЬЮ МОЛЧАЛИВОМУ падению процесса: окно дашборда закрывалось,
+        # а никакого нового окна/сообщения не появлялось — пользователю казалось,
+        # что кнопка "Start" вообще ничего не делает. Показываем явную ошибку.
+        _fatal_startup_error(_main_exc)
+
+

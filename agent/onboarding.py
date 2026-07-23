@@ -358,7 +358,7 @@ class UnrealSetupStep(_StepFrame):
 
     @staticmethod
     def _gdd_display(path: str) -> str:
-        return f"Attached: {Path(path).name}" if path else "No document attached"
+        return f"✅ Attached: {Path(path).name}" if path else "No document attached"
 
     def _browse_folder(self):
         folder = filedialog.askdirectory(title="Select your Unreal Engine project folder")
@@ -378,13 +378,42 @@ class UnrealSetupStep(_StepFrame):
             dest_path = BASE_DIR / dest_name
             shutil.copy(file_path, dest_path)
             self._gdd_path_value = f"./{dest_name}"
-            self.gdd_label.configure(text=self._gdd_display(self._gdd_path_value))
+            # ЯВНОЕ подтверждение: раньше текст менялся молча тем же серым цветом
+            # (COLOR_TEXT_DIM), пользователь легко пропускал этот факт и не был
+            # уверен, прикрепился ли файл. Теперь — зелёный цвет + галочка +
+            # временная плашка "Document attached successfully" под полем.
+            self.gdd_label.configure(text=self._gdd_display(self._gdd_path_value), text_color=theme.COLOR_SUCCESS)
+            self._show_gdd_confirmation()
         except OSError as exc:
-            self.gdd_label.configure(text=f"Failed to copy file: {exc}")
+            self.gdd_label.configure(text=f"❌ Failed to copy file: {exc}", text_color="#ef4444")
+
+    def _show_gdd_confirmation(self):
+        """Кратковременная зелёная плашка-подтверждение под кнопкой Upload…"""
+        if getattr(self, "_gdd_confirm_label", None) is not None:
+            try:
+                self._gdd_confirm_label.destroy()
+            except Exception:
+                pass
+        self._gdd_confirm_label = ctk.CTkLabel(
+            self.body, text="✅ Document attached successfully", font=theme.FONT_SMALL,
+            text_color=theme.COLOR_SUCCESS,
+        )
+        self._gdd_confirm_label.pack(anchor="w", pady=(0, 8))
+
+        def _remove():
+            if getattr(self, "_gdd_confirm_label", None) is not None:
+                try:
+                    self._gdd_confirm_label.destroy()
+                except Exception:
+                    pass
+                self._gdd_confirm_label = None
+
+        self.after(3500, _remove)
 
     def save(self, data: dict) -> None:
         data["ue_project_path"] = self.path_entry.get().strip()
         data["gdd_path"] = self._gdd_path_value
+
 
 
 class SummaryStep(_StepFrame):
@@ -717,7 +746,7 @@ class QuickSettingsWindow(ctk.CTk):
 
     @staticmethod
     def _gdd_display(path: str) -> str:
-        return f"Attached: {Path(path).name}" if path else "No document attached"
+        return f"✅ Attached: {Path(path).name}" if path else "No document attached"
 
     def _browse_gdd(self):
         file_path = filedialog.askopenfilename(
@@ -731,11 +760,14 @@ class QuickSettingsWindow(ctk.CTk):
             dest_path = BASE_DIR / dest_name
             shutil.copy(file_path, dest_path)
             self._gdd_path_value = f"./{dest_name}"
-            self.gdd_label.configure(text=self._gdd_display(self._gdd_path_value))
+            self.gdd_label.configure(text=self._gdd_display(self._gdd_path_value), text_color=theme.COLOR_SUCCESS)
+            self.status_label.configure(text="✅ Document attached successfully")
+            self.after(3500, lambda: self.status_label.configure(text=""))
         except OSError as exc:
-            self.gdd_label.configure(text=f"Failed to copy file: {exc}")
+            self.gdd_label.configure(text=f"❌ Failed to copy file: {exc}", text_color="#ef4444")
 
     # --- Сохранение ---
+
 
     def _collect(self) -> dict:
         self.data["language"] = self._lang_label_to_key.get(self.lang_var.get(), DEFAULT_UI_LANGUAGE)

@@ -20,6 +20,8 @@ FONT_SMALL = ("Segoe UI", 11)
 ACCENT = "#8b5cf6"
 ACCENT_HOVER = "#7c3aed"
 ACCENT_2 = "#22d3ee"
+COLOR_SUCCESS = ("#16a34a", "#4ade80")
+
 
 # (light, dark) — кортежи-цвета для CTk, которые автоматически переключаются
 # при вызове ctk.set_appearance_mode(...), без пересборки окна.
